@@ -8,7 +8,7 @@
         android:icon="@mipmap/ic_launcher"
         android:roundIcon="@mipmap/ic_launcher_round"
         android:label="w4ll.it"
-        android:theme="@style/Theme.RedditWallpaper"
+        android:theme="@style/Theme.W4ll"
         android:usesCleartextTraffic="false">
         <service
             android:name=".NextWallpaperTileService"
