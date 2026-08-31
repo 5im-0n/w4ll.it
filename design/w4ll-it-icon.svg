@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  w4ll.it app icon source
+  1024 × 1024 SVG — keeps a generous safe area for adaptive-icon masking.
+-->
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024" role="img" aria-labelledby="title description">
+  <title id="title">w4ll.it wallpaper icon</title>
+  <desc id="description">A luminous four-pane window framing a stylised mountain wallpaper.</desc>
+  <defs>
+    <linearGradient id="shell" x1="122" y1="80" x2="892" y2="958" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#30265F"/>
+      <stop offset=".48" stop-color="#171B3D"/>
+      <stop offset="1" stop-color="#091A32"/>
+    </linearGradient>
+    <linearGradient id="sky" x1="512" y1="144" x2="512" y2="880" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7257CF"/>
+      <stop offset=".46" stop-color="#FF8FA2"/>
+      <stop offset="1" stop-color="#FFCF81"/>
+    </linearGradient>
+    <linearGradient id="aurora" x1="170" y1="330" x2="850" y2="614" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#80F0DC" stop-opacity=".9"/>
+      <stop offset=".52" stop-color="#A7B6FF" stop-opacity=".12"/>
+      <stop offset="1" stop-color="#F4D2FF" stop-opacity=".7"/>
+    </linearGradient>
+    <linearGradient id="mountainBack" x1="308" y1="500" x2="710" y2="810" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5964AA"/>
+      <stop offset="1" stop-color="#353B79"/>
+    </linearGradient>
+    <linearGradient id="mountainFront" x1="542" y1="600" x2="505" y2="885" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#243967"/>
+      <stop offset="1" stop-color="#10284D"/>
+    </linearGradient>
+    <linearGradient id="frame" x1="190" y1="155" x2="832" y2="882" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFDFE"/>
+      <stop offset="1" stop-color="#D8E7FF"/>
+    </linearGradient>
+    <filter id="shadow" x="74" y="80" width="876" height="892" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="28" stdDeviation="30" flood-color="#030616" flood-opacity=".46"/>
+    </filter>
+    <filter id="glow" x="60" y="123" width="904" height="590" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="22"/>
+    </filter>
+    <clipPath id="sceneClip">
+      <rect x="180" y="180" width="664" height="664" rx="86"/>
+    </clipPath>
+  </defs>
+
+  <!-- Dark, rounded base remains attractive under circular and squircle masks. -->
+  <rect x="40" y="40" width="944" height="944" rx="224" fill="url(#shell)"/>
+  <path d="M156 261C222 151 353 96 473 112c159 21 191 145 333 134 65-5 116-35 151-78v476c-110 94-261 127-397 86C395 680 286 770 106 811V386c16-45 32-86 50-125Z" fill="#5F4AC5" opacity=".18"/>
+  <circle cx="790" cy="204" r="122" fill="#A491FF" opacity=".11" filter="url(#glow)"/>
+
+  <!-- Wallpaper scene. -->
+  <g filter="url(#shadow)">
+    <rect x="164" y="164" width="696" height="696" rx="102" fill="#0C1535"/>
+    <g clip-path="url(#sceneClip)">
+      <rect x="180" y="180" width="664" height="664" fill="url(#sky)"/>
+      <circle cx="694" cy="334" r="96" fill="#FFF4D1" opacity=".91"/>
+      <path d="M150 458c137-74 227-83 342-35 120 50 217 27 385-73v176H150Z" fill="url(#aurora)" opacity=".92"/>
+      <path d="m106 754 221-218 108 100 132-156 279 274v179H106Z" fill="url(#mountainBack)"/>
+      <path d="m260 844 243-255 95 101 104-88 202 199v140H260Z" fill="url(#mountainFront)"/>
+      <path d="m503 589 95 101 29-25-68-78Z" fill="#B7C9E7" opacity=".7"/>
+      <path d="m702 602 202 199v140l-63-1-164-216Z" fill="#071B3C" opacity=".38"/>
+      <path d="M153 779c141-47 240-37 352 24 104 57 216 65 364 10v131H153Z" fill="#0A2140" opacity=".43"/>
+      <g fill="#FFFFFF" opacity=".56">
+        <circle cx="303" cy="303" r="5"/>
+        <circle cx="348" cy="257" r="3"/>
+        <circle cx="411" cy="334" r="4"/>
+        <circle cx="581" cy="260" r="4"/>
+        <circle cx="755" cy="422" r="3"/>
+      </g>
+    </g>
+
+    <!-- Four panes communicate wallpaper browsing and the app's w4ll name. -->
+    <rect x="164" y="164" width="696" height="696" rx="102" fill="none" stroke="url(#frame)" stroke-width="32"/>
+    <path d="M512 181v662M181 512h662" stroke="url(#frame)" stroke-width="25" stroke-linecap="round" opacity=".96"/>
+    <path d="M207 189h610" stroke="#FFFFFF" stroke-opacity=".45" stroke-width="7" stroke-linecap="round"/>
+  </g>
+
+  <!-- Small focal glint: a premium, lively detail at launcher size. -->
+  <path d="M811 142c8 28 21 41 49 49-28 8-41 21-49 49-8-28-21-41-49-49 28-8 41-21 49-49Z" fill="#FFFFFF" opacity=".9"/>
+</svg>

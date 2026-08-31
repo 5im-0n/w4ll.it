@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Launcher foreground derived from design/w4ll-it-icon.svg.
+  The artwork sits inside the adaptive-icon safe zone so it remains legible
+  with circular, squircle, and OEM launcher masks.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+
+    <!-- Soft atmospheric details around the window. -->
+    <path
+        android:fillColor="#335F4AC5"
+        android:pathData="M13,28C20,17 34,12 47,14c17,2 20,15 35,13c7,-1 12,-4 15,-8v51c-11,9 -26,13 -40,9C41,74 30,83 11,86V40c1,-5 1,-8 2,-12z" />
+    <path
+        android:fillColor="#30A491FF"
+        android:pathData="M85.5,10a12.5,12.5 0,1 0,0.1,0" />
+
+    <!-- Four-pane wallpaper window. -->
+    <group>
+        <clip-path android:pathData="M22,22h64a7,7 0,0 1,7 7v50a7,7 0,0 1,-7 7H22a7,7 0,0 1,-7 -7V29a7,7 0,0 1,7 -7z" />
+        <path android:fillColor="#795BD1" android:pathData="M15,22h78v64H15z" />
+        <path android:fillColor="#FF94A8" android:pathData="M15,48h78v38H15z" />
+        <path android:fillColor="#FFD184" android:pathData="M15,67h78v19H15z" />
+        <path android:fillColor="#FFF4D1" android:pathData="M74,25a9.2,9.2 0,1 0,0.1,0" />
+        <path android:fillColor="#938DE5" android:fillAlpha="0.65" android:pathData="M15,50c14,-7 25,-8 37,-4c13,5 24,3 41,-7v14H15z" />
+        <path android:fillColor="#5964AA" android:pathData="M8,75l21,-21 11,10 13,-15 28,27v18H8z" />
+        <path android:fillColor="#18335D" android:pathData="M25,86l24,-25 10,10 10,-9 23,22v12H25z" />
+        <path android:fillColor="#C4D5EE" android:fillAlpha="0.72" android:pathData="M49,61l10,10 3,-3 -7,-8z" />
+        <path android:fillColor="#0A2140" android:fillAlpha="0.48" android:pathData="M15,79c14,-5 25,-4 36,2c11,6 23,7 42,1v12H15z" />
+        <path android:fillColor="#8CFFFF" android:fillAlpha="0.85" android:pathData="M31,30a0.55,0.55 0,1 0,0.1,0" />
+        <path android:fillColor="#FFFFFF" android:fillAlpha="0.72" android:pathData="M40,33a0.4,0.4 0,1 0,0.1,0M61,29a0.45,0.45 0,1 0,0.1,0M76,42a0.35,0.35 0,1 0,0.1,0" />
+    </group>
+
+    <!-- White frame and dividers. -->
+    <path
+        android:fillColor="#F7FAFF"
+        android:pathData="M22,20C17.6,20 14,23.6 14,28v52c0,4.4 3.6,8 8,8h64c4.4,0 8,-3.6 8,-8V28c0,-4.4 -3.6,-8 -8,-8zM22,23h64c2.8,0 5,2.2 5,5v52c0,2.8 -2.2,5 -5,5H22c-2.8,0 -5,-2.2 -5,-5V28c0,-2.8 2.2,-5 5,-5z" />
+    <path android:fillColor="#F7FAFF" android:pathData="M52.8,23h2.4v62h-2.4zM17,52.8h74v2.4H17z" />
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.45" android:pathData="M19,24h68v0.8H19z" />
+
+    <!-- Premium glint. -->
+    <path android:fillColor="#FFFFFF" android:fillAlpha="0.9" android:pathData="M85.5,12c0.8,2.8 2.1,4.1 4.9,4.9 -2.8,0.8 -4.1,2.1 -4.9,4.9 -0.8,-2.8 -2.1,-4.1 -4.9,-4.9 2.8,-0.8 4.1,-2.1 4.9,-4.9z" />
+</vector>
