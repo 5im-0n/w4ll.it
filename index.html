@@ -49,13 +49,16 @@
 
         const markdown = await response.text();
         const md = window.markdownit({ html: true, linkify: true, typographer: true });
+        // `link_open` uses markdown-it's built-in generic token renderer, so it
+        // normally has no individual rule to save and call back into.
         const defaultImage = md.renderer.rules.image;
-        const defaultLinkOpen = md.renderer.rules.link_open;
 
         md.renderer.rules.image = (tokens, index, options, environment, self) => {
           const token = tokens[index];
           token.attrSet('src', makeAbsolute(token.attrGet('src')));
-          return defaultImage(tokens, index, options, environment, self);
+          return defaultImage
+            ? defaultImage(tokens, index, options, environment, self)
+            : self.renderToken(tokens, index, options);
         };
         md.renderer.rules.link_open = (tokens, index, options, environment, self) => {
           const token = tokens[index];
@@ -63,7 +66,7 @@
           if (href && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) {
             token.attrSet('href', new URL(href, repositoryUrl + '/blob/main/').href);
           }
-          return defaultLinkOpen(tokens, index, options, environment, self);
+          return self.renderToken(tokens, index, options);
         };
 
         article.innerHTML = md.render(markdown)
