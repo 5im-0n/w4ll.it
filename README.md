@@ -104,7 +104,9 @@ The project includes upstream F-Droid store metadata in `fastlane/metadata/andro
 
 The app is suitable for F-Droid review because it is openly licensed, builds with Gradle from public source dependencies, and contains no proprietary SDK, advertising, analytics, or tracking. Its reliance on Wallhaven must remain transparently marked as the `NonFreeNet` anti-feature.
 
-Before opening the F-Droid `fdroiddata` merge request, commit the release, create a tag matching the app version (currently `v1.0`), replace `RELEASE_COMMIT` in the recipe with that tag’s full commit hash, and test the recipe with F-Droid’s build tools. Store artwork metadata is ready in the Fastlane directory; add device screenshots there before submission for the best listing.
+Before opening the F-Droid `fdroiddata` merge request, commit the release, create and push a tag matching the app version (currently `v1.0.1`), replace `RELEASE_COMMIT` in the recipe with that tag’s full commit hash, and test the recipe with F-Droid’s build tools. Store artwork metadata is ready in the Fastlane directory; add device screenshots there before submission for the best listing.
+
+The `v1.0.0` bot scan reported OpenCensus because the Android Gradle Plugin's **build-time** dependency graph contains it; it is not in the application's runtime dependency graph or APK. That tag also predated the Gradle wrapper integrity configuration. The next release includes Gradle distribution checksum verification and `gradle/verification-metadata.xml` with SHA-256 verification for every resolved Gradle artifact.
 
 ## Notes and troubleshooting
 

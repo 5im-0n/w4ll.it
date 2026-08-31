@@ -1,0 +1,1 @@
+F-Droid packaging maintenance release. Adds Gradle distribution and dependency checksum verification for reproducible, integrity-checked builds.
