@@ -4,7 +4,7 @@
   <img src="design/w4ll-it-icon.svg" width="300px" />
 </p>
 
-`w4ll.it` is an Android wallpaper app powered by the public [Wallhaven](https://wallhaven.cc/) catalogue. It fetches recent, SFW wallpapers that match your chosen tags, displays them in a two-column grid, and lets you apply a wallpaper to the home screen, lock screen, or both.
+`w4ll.it` is a free and open-source Android wallpaper app powered by the public [Wallhaven](https://wallhaven.cc/) catalogue. It fetches recent, SFW wallpapers that match your chosen tags, displays them in a two-column grid, and lets you apply a wallpaper to the home screen, lock screen, or both.
 
 ## Features
 
@@ -18,6 +18,17 @@
   - comma-separated wallpaper tags (default: `nature, abstract, landscape, city`);
   - a periodic home-screen wallpaper change interval (default: every 6 hours; `0` disables it).
 - Refreshes the cached Wallhaven results asynchronously once every 24 hours when a network connection is available.
+
+## Privacy and network services
+
+- The app contains **no advertising, analytics, trackers, accounts, or API keys**.
+- Settings and the cached wallpaper list are stored locally on the device.
+- To perform its core function, the app contacts Wallhaven and the image hosts returned by Wallhaven. Those services receive normal network-request data, including the device IP address and the requested tags or images.
+- Wallhaven is a third-party, non-libre network service. An F-Droid listing must therefore disclose the `NonFreeNet` anti-feature. The app does not contain a proprietary SDK or depend on Google Play services.
+
+## License
+
+w4ll.it source code and the project-owned artwork are released under the [MIT License](LICENSE). Wallpapers fetched from Wallhaven are not part of this source distribution and remain subject to their creators’ rights and Wallhaven’s terms.
 
 ## Requirements
 
@@ -81,6 +92,14 @@ call gradlew.bat installDebug
 5. Tap **Save settings** to save the values and fetch a new matching set.
 
 Tags are alternatives: a wallpaper only needs to match **at least one** entered tag. For example, `nature, mountains` fetches wallpapers tagged `nature` or `mountains`. Multi-word tags can be entered normally, such as `abstract art, city`. Results from all tags are merged, deduplicated, and kept in most-recent-first order.
+
+## F-Droid
+
+The project includes upstream F-Droid store metadata in `fastlane/metadata/android/en-US/` and a submission recipe template at [`fdroid/it.w4ll.yml`](fdroid/it.w4ll.yml). The template documents the one release-specific value required by F-Droid: the full immutable commit hash of a version tag.
+
+The app is suitable for F-Droid review because it is openly licensed, builds with Gradle from public source dependencies, and contains no proprietary SDK, advertising, analytics, or tracking. Its reliance on Wallhaven must remain transparently marked as the `NonFreeNet` anti-feature.
+
+Before opening the F-Droid `fdroiddata` merge request, commit the release, create a tag matching the app version (currently `v1.0`), replace `RELEASE_COMMIT` in the recipe with that tag’s full commit hash, and test the recipe with F-Droid’s build tools. Store artwork metadata is ready in the Fastlane directory; add device screenshots there before submission for the best listing.
 
 ## Notes and troubleshooting
 

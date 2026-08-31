@@ -223,7 +223,7 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layout_marginTop="16dp"
-                            android:text="w4ll.it helps you discover and apply wallpapers from Wallhaven.\n\nThis is placeholder information for the app. More details about wallpaper sources, privacy, and credits will appear here in a future update."
+                            android:text="w4ll.it lets you discover and apply wallpapers from Wallhaven’s public SFW catalogue.\n\nPrivacy: w4ll.it has no ads, analytics, trackers, accounts, or API keys. Settings and the wallpaper list are stored on your device. To fetch wallpapers and images, the app contacts Wallhaven and its image hosts; they receive normal network-request data such as your IP address and requested tags.\n\nWallhaven is a third-party, non-libre network service, so w4ll.it is labelled NonFreeNet on F-Droid. Wallpaper rights remain with their creators and are subject to Wallhaven’s terms."
                             android:textAppearance="@style/TextAppearance.Material3.BodyLarge" />
                     </LinearLayout>
                 </ScrollView>

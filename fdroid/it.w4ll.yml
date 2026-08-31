@@ -1,0 +1,30 @@
+# Submission metadata for F-Droid's fdroiddata repository.
+# Copy this file to fdroiddata/metadata/it.w4ll.yml after tagging a release, then
+# replace RELEASE_COMMIT with that tag's full commit hash. The main F-Droid repo
+# builds from that immutable commit rather than from this working tree.
+AntiFeatures:
+  NonFreeNet:
+    en-US: Requires Wallhaven, a non-libre third-party wallpaper catalogue and image service.
+Categories:
+  - Multimedia
+  - Wallpaper
+License: MIT
+SourceCode: https://github.com/5im-0n/w4ll.it
+IssueTracker: https://github.com/5im-0n/w4ll.it/issues
+
+AutoName: w4ll.it
+
+RepoType: git
+Repo: https://github.com/5im-0n/w4ll.it.git
+
+Builds:
+  - versionName: '1.0'
+    versionCode: 1
+    commit: RELEASE_COMMIT
+    gradle:
+      - yes
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: '1.0'
+CurrentVersionCode: 1

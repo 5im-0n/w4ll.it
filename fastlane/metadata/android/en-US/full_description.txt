@@ -1,0 +1,13 @@
+w4ll.it is a wallpaper browser for Android powered by Wallhaven's public SFW catalogue.
+
+Choose the number of results and one or more comma-separated tags. w4ll.it fetches the most recently added matching wallpapers, merges and deduplicates the results, and presents them in a two-column grid. Tags are alternatives, so a wallpaper may match any of the selected tags.
+
+Apply a wallpaper to the home screen, lock screen, or both. Cached wallpapers can also be rotated automatically at an interval you choose, and a Quick Settings tile applies the next cached wallpaper to the last selected target.
+
+Privacy
+
+w4ll.it contains no advertising, analytics, tracking, accounts, or API keys. Its settings and cached wallpaper list stay on your device. To provide its core functionality, it connects to Wallhaven and the image hosts returned by Wallhaven. Those services receive ordinary network-request data, such as your IP address and the requested tags or images. Wallhaven is a third-party service and is not operated by this project.
+
+Content and network-service notice
+
+Wallpapers are supplied by Wallhaven and remain subject to their respective creators' rights and Wallhaven's terms. The app requests only SFW Wallhaven search results, but users are responsible for selecting and using downloaded content appropriately. The app depends on Wallhaven, a non-libre network service; this dependency is disclosed as F-Droid's NonFreeNet anti-feature.
