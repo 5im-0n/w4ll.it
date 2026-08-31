@@ -4,7 +4,7 @@
   <img src="design/w4ll-it-icon.svg" width="300px" />
 </p>
 
-`w4ll.it` is a free and open-source Android wallpaper app powered by the public [Wallhaven](https://wallhaven.cc/) catalogue. It fetches recent, SFW wallpapers that match your chosen tags, displays them in a two-column grid, and lets you apply a wallpaper to the home screen, lock screen, or both.
+`w4ll.it` is a free and open-source Android wallpaper app powered by the public [Wallhaven](https://wallhaven.cc/) catalogue. It fetches recent wallpapers that match your chosen tags, displays them in a two-column grid, and lets you apply a wallpaper to the home screen, lock screen, or both.
 
 <p align="center">
   <img src="design/Screenshot1.png" width="300px" />
@@ -14,7 +14,7 @@
 ## Features
 
 - Fetches the most recently added wallpapers from Wallhaven.
-- Uses only Wallhaven's public **SFW** results; no account, API key, or credential is required.
+- Uses only Wallhaven's public results; no account, API key, or credential is required.
 - Displays cached wallpapers in a two-column grid for quick browsing.
 - Applies a selected image to the home screen, lock screen, or both.
 - Starts fetching automatically when the app opens with an empty wallpaper cache.

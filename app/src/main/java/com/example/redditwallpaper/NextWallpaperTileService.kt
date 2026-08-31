@@ -99,7 +99,7 @@ internal object CachedWallpaperRotation {
         OkHttpClient().newCall(request).execute().use { response ->
             if (!response.isSuccessful) return false
             val body = response.body ?: return false
-            WallpaperBitmapApplier.apply(context, body.bytes(), target)
+            WallpaperBitmapApplier.apply(context, body.byteStream(), target)
         }
         rememberWallpaperApplication(context, nextUrl, target)
         return true

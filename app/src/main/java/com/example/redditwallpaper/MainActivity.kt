@@ -258,7 +258,7 @@ class MainActivity : AppCompatActivity() {
                     client.newCall(request).execute().use { response ->
                         check(response.isSuccessful) { "Image download failed (${response.code})" }
                         val body = response.body ?: throw IllegalStateException("Empty image response")
-                        WallpaperBitmapApplier.apply(this@MainActivity, body.bytes(), target)
+                        WallpaperBitmapApplier.apply(this@MainActivity, body.byteStream(), target)
                     }
                 }
                 CachedWallpaperRotation.rememberWallpaperApplication(this@MainActivity, post.imageUrl, target)
