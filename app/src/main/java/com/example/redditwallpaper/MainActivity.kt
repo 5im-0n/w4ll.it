@@ -33,7 +33,6 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
-import java.io.ByteArrayInputStream
 import java.net.URI
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -259,9 +258,7 @@ class MainActivity : AppCompatActivity() {
                     client.newCall(request).execute().use { response ->
                         check(response.isSuccessful) { "Image download failed (${response.code})" }
                         val body = response.body ?: throw IllegalStateException("Empty image response")
-                        WallpaperManager.getInstance(this@MainActivity).setStream(
-                            ByteArrayInputStream(body.bytes()), null, true, target
-                        )
+                        WallpaperBitmapApplier.apply(this@MainActivity, body.bytes(), target)
                     }
                 }
                 CachedWallpaperRotation.rememberWallpaperApplication(this@MainActivity, post.imageUrl, target)

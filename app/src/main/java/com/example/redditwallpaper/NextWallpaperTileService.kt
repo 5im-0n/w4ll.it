@@ -15,7 +15,6 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
-import java.io.ByteArrayInputStream
 
 /**
  * Quick Settings tile which applies the next cached wallpaper to the same target
@@ -100,12 +99,7 @@ internal object CachedWallpaperRotation {
         OkHttpClient().newCall(request).execute().use { response ->
             if (!response.isSuccessful) return false
             val body = response.body ?: return false
-            WallpaperManager.getInstance(context).setStream(
-                ByteArrayInputStream(body.bytes()),
-                null,
-                true,
-                target
-            )
+            WallpaperBitmapApplier.apply(context, body.bytes(), target)
         }
         rememberWallpaperApplication(context, nextUrl, target)
         return true
