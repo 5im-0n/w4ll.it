@@ -3,6 +3,15 @@
    <configuration>
       <verify-metadata>true</verify-metadata>
       <verify-signatures>false</verify-signatures>
+      <!-- Android Studio resolves source and Javadoc archives in detached configurations
+           to provide dependency navigation and documentation. These archives are not
+           executed or packaged in an APK; checksum verification remains enabled for all
+           build, runtime, and metadata artifacts. -->
+      <trusted-artifacts>
+         <trust file=".*-sources[.]jar" regex="true" reason="IDE-only dependency source archives"/>
+         <trust file=".*-javadoc[.]jar" regex="true" reason="IDE-only dependency Javadoc archives"/>
+         <trust file=".*-src[.]zip" regex="true" reason="IDE-only Gradle source archive"/>
+      </trusted-artifacts>
    </configuration>
    <components>
       <component group="androidx.activity" name="activity" version="1.7.0">

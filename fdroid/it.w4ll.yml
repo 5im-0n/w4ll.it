@@ -5,9 +5,13 @@
 #
 # This needs a new release because F-Droid's scanner reports OpenCensus only in
 # the Android Gradle Plugin build tooling (not in the app runtime APK). The
-# submitted build should use the current wrapper, which pins both Gradle's
-# distribution SHA-256 and every resolved build dependency in
-# gradle/verification-metadata.xml.
+# submitted build uses the current wrapper, which pins both Gradle's distribution
+# SHA-256 and all executable resolved build dependencies in
+# gradle/verification-metadata.xml. The metadata includes checksums for
+# platform-specific artifacts selected by Windows development machines and Linux
+# CI/F-Droid builders. IDE-only source archives are explicitly trusted because
+# Android Studio downloads them only for code navigation; they are never executed
+# or packaged in the APK.
 AntiFeatures:
   NonFreeNet:
     en-US: Requires Wallhaven, a non-libre third-party wallpaper catalogue and image service.
@@ -24,13 +28,13 @@ RepoType: git
 Repo: https://github.com/5im-0n/w4ll.it.git
 
 Builds:
-  - versionName: '1.0.1'
-    versionCode: 2
+  - versionName: '1.0.2'
+    versionCode: 3
     commit: RELEASE_COMMIT
     gradle:
       - yes
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: '1.0.1'
-CurrentVersionCode: 2
+CurrentVersion: '1.0.2'
+CurrentVersionCode: 3
