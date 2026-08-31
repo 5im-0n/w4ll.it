@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark light">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net; connect-src https://raw.githubusercontent.com; img-src 'self' data: https://raw.githubusercontent.com; style-src 'self' 'unsafe-inline'; base-uri 'none'; form-action 'none'">
+  <title>w4ll.it</title>
+  <style>
+    :root { color-scheme: dark light; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; line-height: 1.6; }
+    body { margin: 0; background: Canvas; color: CanvasText; }
+    main { box-sizing: border-box; width: min(100% - 2rem, 58rem); margin: 0 auto; padding: 3rem 0 5rem; }
+    #status { color: GrayText; }
+    h1, h2, h3 { line-height: 1.2; margin-top: 2rem; }
+    h1 { margin-top: 0; }
+    img { max-width: 100%; height: auto; }
+    pre { overflow-x: auto; padding: 1rem; border-radius: .5rem; background: color-mix(in srgb, CanvasText 8%, Canvas); }
+    code { font-family: ui-monospace, SFMono-Regular, Consolas, monospace; }
+    :not(pre) > code { padding: .15em .35em; border-radius: .25rem; background: color-mix(in srgb, CanvasText 8%, Canvas); }
+    a { color: LinkText; }
+  </style>
+  <script src="//cdn.jsdelivr.net/npm/markdown-it@13/dist/markdown-it.min.js"></script>
+</head>
+<body>
+  <main>
+    <p id="status" role="status">Loading project information…</p>
+    <article id="readme" hidden></article>
+  </main>
+  <script>
+    (() => {
+      const readmeUrl = 'https://raw.githubusercontent.com/5im-0n/w4ll.it/main/README.md';
+      const repositoryUrl = 'https://github.com/5im-0n/w4ll.it';
+      const assetBaseUrl = 'https://raw.githubusercontent.com/5im-0n/w4ll.it/main/';
+      const status = document.getElementById('status');
+      const article = document.getElementById('readme');
+
+      function makeAbsolute(url) {
+        if (!url || /^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(url)) return url;
+        return new URL(url, assetBaseUrl).href;
+      }
+
+      async function renderReadme() {
+        if (typeof window.markdownit !== 'function') {
+          throw new Error('The Markdown renderer could not be loaded.');
+        }
+
+        const response = await fetch(readmeUrl);
+        if (!response.ok) throw new Error(`README request failed (${response.status}).`);
+
+        const markdown = await response.text();
+        const md = window.markdownit({ html: true, linkify: true, typographer: true });
+        const defaultImage = md.renderer.rules.image;
+        const defaultLinkOpen = md.renderer.rules.link_open;
+
+        md.renderer.rules.image = (tokens, index, options, environment, self) => {
+          const token = tokens[index];
+          token.attrSet('src', makeAbsolute(token.attrGet('src')));
+          return defaultImage(tokens, index, options, environment, self);
+        };
+        md.renderer.rules.link_open = (tokens, index, options, environment, self) => {
+          const token = tokens[index];
+          const href = token.attrGet('href');
+          if (href && !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(href)) {
+            token.attrSet('href', new URL(href, repositoryUrl + '/blob/main/').href);
+          }
+          return defaultLinkOpen(tokens, index, options, environment, self);
+        };
+
+        article.innerHTML = md.render(markdown)
+          .replace(/(<img\b[^>]*\bsrc=["'])(?![a-z][a-z0-9+.-]*:|\/\/|#)([^"']*)/gi, (_, before, source) => before + makeAbsolute(source));
+        article.hidden = false;
+        status.remove();
+      }
+
+      renderReadme().catch((error) => {
+        console.error(error);
+        status.textContent = `Unable to load the README. You can read it on GitHub: ${repositoryUrl}`;
+      });
+    })();
+  </script>
+</body>
+</html>
