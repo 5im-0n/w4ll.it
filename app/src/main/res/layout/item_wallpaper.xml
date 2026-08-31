@@ -51,25 +51,40 @@
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/homeButton"
                 style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
                 android:minWidth="0dp"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:singleLine="true"
                 android:text="Home" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/lockButton"
                 style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
                 android:minWidth="0dp"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:singleLine="true"
                 android:text="Lock" />
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/bothButton"
                 style="@style/Widget.Material3.Button.TextButton"
-                android:layout_width="wrap_content"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:gravity="center"
                 android:minWidth="0dp"
+                android:paddingLeft="4dp"
+                android:paddingRight="4dp"
+                android:singleLine="true"
                 android:text="Both" />
         </LinearLayout>
     </LinearLayout>
