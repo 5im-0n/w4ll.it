@@ -9,9 +9,9 @@
 # SHA-256 and all executable resolved build dependencies in
 # gradle/verification-metadata.xml. The metadata includes checksums for
 # platform-specific artifacts selected by Windows development machines and Linux
-# CI/F-Droid builders. IDE-only source archives are explicitly trusted because
-# Android Studio downloads them only for code navigation; they are never executed
-# or packaged in the APK.
+# CI/F-Droid builders. IDE-only source and Javadoc archives are explicitly
+# trusted because Android Studio downloads them only for code navigation; they
+# are never executed or packaged in the APK.
 AntiFeatures:
   NonFreeNet:
     en-US: Requires Wallhaven, a non-libre third-party wallpaper catalogue and image service.
@@ -28,13 +28,13 @@ RepoType: git
 Repo: https://github.com/5im-0n/w4ll.it.git
 
 Builds:
-  - versionName: '1.0.2'
-    versionCode: 3
+  - versionName: '1.0.3'
+    versionCode: 4
     commit: RELEASE_COMMIT
     gradle:
       - yes
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: '1.0.2'
-CurrentVersionCode: 3
+CurrentVersion: '1.0.3'
+CurrentVersionCode: 4

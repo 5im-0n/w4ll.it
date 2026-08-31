@@ -4,7 +4,7 @@
 
 ## Submission steps
 
-1. Commit the release sources, then create and push a matching version tag (currently `v1.0.2`).
+1. Commit the release sources, then create and push a matching version tag (currently `v1.0.3`).
 2. Copy `it.w4ll.yml` to a fork of `fdroiddata` at `metadata/it.w4ll.yml`.
 3. Set `Builds[0].commit` to the new release tag's full commit hash. Keep the version name and code equal to `app/build.gradle.kts`.
 4. Build and validate the recipe using F-Droid's tools, then open a merge request against `fdroiddata`.

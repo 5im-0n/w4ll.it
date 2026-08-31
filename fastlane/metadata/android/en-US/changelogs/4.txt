@@ -1,0 +1,1 @@
+Fix Gradle dependency-verification metadata for Linux CI and F-Droid builds.
