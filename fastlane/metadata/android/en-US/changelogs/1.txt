@@ -1,1 +1,1 @@
-Initial F-Droid-ready release: browse SFW Wallhaven wallpapers, apply them to the home or lock screen, cache results, rotate cached wallpapers, and use the Quick Settings tile.
+Initial F-Droid-ready release: browse Wallhaven wallpapers, apply them to the home or lock screen, cache results, rotate cached wallpapers, and use the Quick Settings tile.

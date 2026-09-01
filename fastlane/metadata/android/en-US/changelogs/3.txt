@@ -1,1 +1,0 @@
-Fix Linux CI and F-Droid build verification by adding checksums for artifacts selected by Linux Gradle builds.
