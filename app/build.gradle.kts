@@ -11,8 +11,8 @@ android {
         applicationId = "it.w4ll"
         minSdk = 24
         targetSdk = 35
-        versionCode = 4
-        versionName = "1.0.3"
+        versionCode = 1
+        versionName = "1.0.1"
     }
 
     buildFeatures { viewBinding = true }
