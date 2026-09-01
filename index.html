@@ -91,6 +91,11 @@
     .highlight b { display: block; margin-bottom: .35rem; color: var(--aqua); font-size: .79rem; letter-spacing: .09em; text-transform: uppercase; }
     .highlight p { margin: 0; color: var(--muted); font-size: .94rem; line-height: 1.5; }
 
+    .privacy-statement { max-width: 57rem; margin: 0 0 clamp(3rem, 7vw, 5rem); padding: clamp(1.5rem, 4vw, 2.25rem); border: 1px solid var(--line); border-radius: 1rem; background: linear-gradient(135deg, rgba(31, 44, 89, .82), rgba(18, 28, 58, .7)); box-shadow: 0 1.2rem 3rem rgba(0, 0, 0, .1); }
+    .privacy-statement h2 { margin: 0 0 .8rem; font-size: clamp(1.55rem, 3vw, 2.1rem); letter-spacing: -.045em; }
+    .privacy-statement p { margin: 1rem 0 0; color: var(--muted); }
+    .privacy-statement p:first-of-type { margin-top: 0; }
+
     .readme-heading { display: flex; align-items: baseline; gap: 1rem; margin-bottom: 1.8rem; }
     .readme-heading h2 { margin: 0; font-size: clamp(1.8rem, 4vw, 2.7rem); letter-spacing: -.045em; }
     .readme-heading span { color: var(--muted); font-size: .9rem; }
@@ -131,6 +136,7 @@
     <a class="brand" href="/" aria-label="w4ll.it home"><img src="https://raw.githubusercontent.com/5im-0n/w4ll.it/main/design/w4ll-it-icon.svg" alt=""><span>w4ll.it</span></a>
     <nav aria-label="Primary navigation">
       <a href="#about">About</a>
+      <a href="#privacy">Privacy</a>
       <a href="#readme">Documentation</a>
       <a class="github-link" href="https://github.com/5im-0n/w4ll.it">GitHub ↗</a>
     </nav>
@@ -153,6 +159,13 @@
       <div class="highlight"><b>Open source</b><p>Simple, transparent, and released under the MIT License.</p></div>
       <div class="highlight"><b>Your device</b><p>Choose images for your home screen, lock screen, or both.</p></div>
       <div class="highlight"><b>No clutter</b><p>No ads, accounts, analytics, trackers, or API keys.</p></div>
+    </section>
+
+    <section class="privacy-statement" id="privacy" aria-labelledby="privacy-title">
+      <h2 id="privacy-title">Privacy Statement</h2>
+      <p><strong>w4ll.it</strong> is committed to protecting your privacy. This privacy statement explains how we handle your data when you use our service.</p>
+      <p>We do not share your data with anyone. Your information is not sold, rented, or disclosed to third parties under any circumstances.</p>
+      <p>Your data is used exclusively to deliver the service to you — nothing more. We do not use your data for advertising, profiling, analytics, or any purpose other than providing the functionality you expect from <strong>w4ll.it</strong>.</p>
     </section>
 
     <section aria-labelledby="readme-title">
