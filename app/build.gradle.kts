@@ -1,9 +1,33 @@
+import com.android.build.api.dsl.ApplicationExtension
+import java.util.Properties
+import org.gradle.api.GradleException
+import org.gradle.kotlin.dsl.configure
+import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+
 plugins {
     id("com.android.application")
     id("org.jetbrains.kotlin.android")
 }
 
-android {
+// This file is local-only and must contain the credentials for the Play upload key.
+val keystoreProperties = Properties()
+val keystorePropertiesFile = rootProject.file("keystore.properties")
+
+if (!keystorePropertiesFile.isFile) {
+    throw GradleException(
+        "Missing keystore.properties. Create it from keystore.properties.example before building a release bundle."
+    )
+}
+
+keystorePropertiesFile.inputStream().use { input ->
+    keystoreProperties.load(input)
+}
+
+fun signingProperty(name: String): String = keystoreProperties.getProperty(name)
+    ?: throw GradleException("Missing '$name' in keystore.properties.")
+
+// AGP 9 uses ApplicationExtension rather than the deprecated android {} accessor.
+extensions.configure<ApplicationExtension> {
     namespace = "it.w4ll"
     compileSdk = 35
 
@@ -15,15 +39,33 @@ android {
         versionName = "1.0.1"
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file(signingProperty("storeFile"))
+            storePassword = signingProperty("storePassword")
+            keyAlias = signingProperty("keyAlias")
+            keyPassword = signingProperty("keyPassword")
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig = signingConfigs.getByName("release")
+            isMinifyEnabled = false
+        }
+    }
+
     buildFeatures { viewBinding = true }
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+}
 
-    kotlinOptions {
-        jvmTarget = "17"
+kotlin {
+    compilerOptions {
+        jvmTarget.set(JvmTarget.JVM_17)
     }
 }
 
