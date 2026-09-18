@@ -1,7 +1,7 @@
 # Submission metadata for F-Droid's fdroiddata repository.
-# Copy this file to fdroiddata/metadata/it.w4ll.yml after tagging a release, then
-# replace RELEASE_COMMIT with that tag's full commit hash. The main F-Droid repo
-# builds from that immutable commit rather than from this working tree.
+# The GitHub release workflow updates the version fields and commit tag in this
+# template. Copy it to fdroiddata/metadata/it.w4ll.yml for submission; F-Droid
+# resolves the release tag to the immutable source revision it builds.
 #
 # This needs a new release because F-Droid's scanner reports OpenCensus only in
 # the Android Gradle Plugin build tooling (not in the app runtime APK). The

@@ -3,20 +3,173 @@ name: Build signed APK on tag
 on:
   push:
     tags:
-      - "*"
+      - "v*"
 
-# Required for the workflow to create a GitHub Release and upload its APK asset.
+# The workflow updates release metadata, moves the newly pushed tag to that
+# metadata commit, creates a GitHub Release, and uploads its APK.
 permissions:
   contents: write
 
+# Avoid two releases trying to update the default branch at the same time.
+concurrency:
+  group: release-metadata
+  cancel-in-progress: false
+
 jobs:
   build-apk:
-    name: Build signed release APK
+    name: Version, commit, and build signed release APK
     runs-on: ubuntu-latest
 
     steps:
-      - name: Check out source
+      # Release tags must be created from the tip of the default branch. Checking
+      # out that branch lets this job commit the generated version metadata.
+      - name: Check out default branch
         uses: actions/checkout@v5
+        with:
+          ref: ${{ github.event.repository.default_branch }}
+          fetch-depth: 0
+
+      - name: Verify release tag position
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          set -euo pipefail
+          tag_commit="$(git rev-parse "refs/tags/$RELEASE_TAG^{commit}")"
+          branch_commit="$(git rev-parse HEAD)"
+
+          if [[ "$tag_commit" != "$branch_commit" ]]; then
+            echo "::error::Release tag $RELEASE_TAG must be created from the current tip of ${{ github.event.repository.default_branch }}."
+            exit 1
+          fi
+
+      - name: Update versions from tag
+        id: version
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: |
+          python3 <<'PY'
+          import os
+          import re
+          from pathlib import Path
+
+          tag = os.environ["RELEASE_TAG"]
+          if not re.fullmatch(r"v[0-9]+[.][0-9]+[.][0-9]+(?:[-+][0-9A-Za-z.-]+)?", tag):
+              raise SystemExit(
+                  f"Unsupported release tag {tag!r}; expected vMAJOR.MINOR.PATCH, "
+                  "optionally followed by a prerelease/build suffix."
+              )
+
+          version_name = tag[1:]
+          gradle_path = Path("app/build.gradle.kts")
+          fdroid_path = Path("fdroid/it.w4ll.yml")
+          gradle_lines = gradle_path.read_text(encoding="utf-8").splitlines()
+          fdroid_lines = fdroid_path.read_text(encoding="utf-8").splitlines()
+
+          def value_after(lines, prefix, description):
+              matches = [line.strip()[len(prefix):].strip() for line in lines if line.strip().startswith(prefix)]
+              if len(matches) != 1:
+                  raise SystemExit(f"Expected exactly one {description}, found {len(matches)}")
+              return matches[0]
+
+          gradle_code = int(value_after(gradle_lines, "versionCode =", "Gradle versionCode"))
+          gradle_name = value_after(gradle_lines, "versionName =", "Gradle versionName").strip('"')
+          fdroid_code = int(value_after(fdroid_lines, "CurrentVersionCode:", "F-Droid CurrentVersionCode"))
+          fdroid_name = value_after(fdroid_lines, "CurrentVersion:", "F-Droid CurrentVersion").strip("'\"")
+
+          # Re-running the same release is idempotent. A genuinely new tag gets
+          # one code above every code currently recorded in either file.
+          version_already_present = version_name in (gradle_name, fdroid_name)
+          highest_existing_code = max(gradle_code, fdroid_code)
+          version_code = highest_existing_code if version_already_present else highest_existing_code + 1
+
+          if not 1 <= version_code <= 2_100_000_000:
+              raise SystemExit(f"Generated Android versionCode {version_code} is out of range")
+
+          def replace_unique(lines, predicate, replacement, description):
+              indexes = [index for index, line in enumerate(lines) if predicate(line)]
+              if len(indexes) != 1:
+                  raise SystemExit(f"Expected exactly one {description}, found {len(indexes)}")
+              index = indexes[0]
+              indentation = lines[index][:len(lines[index]) - len(lines[index].lstrip())]
+              lines[index] = indentation + replacement
+
+          replace_unique(
+              gradle_lines,
+              lambda line: line.strip().startswith("versionCode ="),
+              f"versionCode = {version_code}",
+              "Gradle versionCode",
+          )
+          replace_unique(
+              gradle_lines,
+              lambda line: line.strip().startswith("versionName ="),
+              f'versionName = "{version_name}"',
+              "Gradle versionName",
+          )
+          replace_unique(
+              fdroid_lines,
+              lambda line: line.strip().startswith("- versionName:"),
+              f"- versionName: '{version_name}'",
+              "F-Droid build versionName",
+          )
+          replace_unique(
+              fdroid_lines,
+              lambda line: line.strip().startswith("versionCode:"),
+              f"versionCode: {version_code}",
+              "F-Droid build versionCode",
+          )
+          replace_unique(
+              fdroid_lines,
+              lambda line: line.strip().startswith("commit:"),
+              f"commit: {tag}",
+              "F-Droid build commit",
+          )
+          replace_unique(
+              fdroid_lines,
+              lambda line: line.startswith("CurrentVersion:"),
+              f"CurrentVersion: '{version_name}'",
+              "F-Droid CurrentVersion",
+          )
+          replace_unique(
+              fdroid_lines,
+              lambda line: line.startswith("CurrentVersionCode:"),
+              f"CurrentVersionCode: {version_code}",
+              "F-Droid CurrentVersionCode",
+          )
+
+          gradle_path.write_text("\n".join(gradle_lines) + "\n", encoding="utf-8")
+          fdroid_path.write_text("\n".join(fdroid_lines) + "\n", encoding="utf-8")
+
+          with open(os.environ["GITHUB_OUTPUT"], "a", encoding="utf-8") as output:
+              output.write(f"name={version_name}\n")
+              output.write(f"code={version_code}\n")
+          PY
+
+      - name: Commit version metadata and move release tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+          DEFAULT_BRANCH: ${{ github.event.repository.default_branch }}
+          VERSION_CODE: ${{ steps.version.outputs.code }}
+        run: |
+          set -euo pipefail
+
+          if git diff --quiet -- app/build.gradle.kts fdroid/it.w4ll.yml; then
+            echo "Version metadata is already current."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add app/build.gradle.kts fdroid/it.w4ll.yml
+          git commit -m "chore(release): $RELEASE_TAG (version code $VERSION_CODE)"
+
+          # The tag initially triggers this workflow at the pre-version commit.
+          # Move both the default branch and tag atomically so the published tag
+          # contains the generated metadata. GITHUB_TOKEN pushes do not recursively
+          # start another tag workflow.
+          git tag --force "$RELEASE_TAG" HEAD
+          git push --atomic origin \
+            "HEAD:refs/heads/$DEFAULT_BRANCH" \
+            "+refs/tags/$RELEASE_TAG:refs/tags/$RELEASE_TAG"
 
       - name: Set up JDK 17
         uses: actions/setup-java@v5
@@ -63,6 +216,7 @@ jobs:
       - name: Create GitHub Release and attach APK
         uses: softprops/action-gh-release@v2
         with:
+          tag_name: ${{ github.ref_name }}
           generate_release_notes: true
           files: w4ll.apk
 

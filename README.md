@@ -98,7 +98,9 @@ Tag pushes run `.github/workflows/build-apk-on-tag.yml`, which builds a signed r
 - `ANDROID_KEY_ALIAS`: the signing-key alias;
 - `ANDROID_KEY_PASSWORD`: the signing-key password.
 
-Keep the original keystore and its passwords in a secure backup. Every release must use this same key; losing or replacing it prevents Android from installing the new APK as an update. Also increase `versionCode` and update `versionName` in `app/build.gradle.kts` before each release.
+Keep the original keystore and its passwords in a secure backup. Every release must use this same key; losing or replacing it prevents Android from installing the new APK as an update.
+
+Create each release tag from the current tip of the default branch using the format `vMAJOR.MINOR.PATCH` (for example, `v1.2.0`). The workflow derives `versionName` from the tag, increments `versionCode`, updates both `app/build.gradle.kts` and `fdroid/it.w4ll.yml`, commits those changes to the default branch, and moves the tag to that generated commit before building. Because this requires force-updating the newly pushed tag, do not protect release tags against updates. If branch protection applies to the default branch, allow GitHub Actions to push to it (or add the Actions bot to the bypass list).
 
 If you do not yet have a keystore, create one from Windows Command Prompt (replace the alias if desired, then securely record the passwords you enter):
 
@@ -126,11 +128,11 @@ Included tags are alternatives: a wallpaper only needs to match **at least one**
 
 ## F-Droid
 
-The project includes upstream F-Droid store metadata in `fastlane/metadata/android/en-US/` and a submission recipe template at [`fdroid/it.w4ll.yml`](fdroid/it.w4ll.yml). The template documents the one release-specific value required by F-Droid: the full immutable commit hash of a version tag.
+The project includes upstream F-Droid store metadata in `fastlane/metadata/android/en-US/` and a submission recipe template at [`fdroid/it.w4ll.yml`](fdroid/it.w4ll.yml). The release workflow automatically keeps its version fields and source tag aligned with the Android build.
 
 The app is suitable for F-Droid review because it is openly licensed, builds with Gradle from public source dependencies, and contains no proprietary SDK, advertising, analytics, or tracking. Its reliance on Wallhaven must remain transparently marked as the `NonFreeNet` anti-feature.
 
-Before opening the F-Droid `fdroiddata` merge request, commit the release, create and push a tag matching the app version (currently `v1.0.1`), replace `RELEASE_COMMIT` in the recipe with that tag’s full commit hash, and test the recipe with F-Droid’s build tools. Store artwork and phone screenshots are included in the Fastlane metadata directory.
+Before opening the F-Droid `fdroiddata` merge request, push the release tag and wait for the GitHub release workflow to finish. Then copy the updated recipe to `fdroiddata`, test it with F-Droid’s build tools, and open the merge request. Store artwork and phone screenshots are included in the Fastlane metadata directory.
 
 The `v1.0.0` bot scan reported OpenCensus because the Android Gradle Plugin's **build-time** dependency graph contains it; it is not in the application's runtime dependency graph or APK. That tag also predated the Gradle wrapper integrity configuration. The next release includes Gradle distribution checksum verification and `gradle/verification-metadata.xml` with SHA-256 verification for every resolved Gradle artifact.
 
