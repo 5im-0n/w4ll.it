@@ -121,6 +121,8 @@ class MainActivity : AppCompatActivity() {
         }
         val tags = binding.searchQueryInput.text?.toString()?.trim().orEmpty()
         val excludedTags = binding.excludedTagsInput.text?.toString()?.trim().orEmpty()
+        val includedTagList = tags.toCommaSeparatedTags()
+        val excludedTagList = excludedTags.toCommaSeparatedTags()
         val tagQueries = buildWallhavenTagQueries(tags, excludedTags)
         saveFetchSettings(count, tags, excludedTags, intervalHours)
         scheduleBackgroundWork(intervalHours)
@@ -133,7 +135,7 @@ class MainActivity : AppCompatActivity() {
 
             try {
                 val wallpapers = withContext(Dispatchers.IO) {
-                    WallhavenRepository(client).fetch(tagQueries, count)
+                    WallhavenRepository(client).fetch(tagQueries, includedTagList, excludedTagList, count)
                 }
                 if (wallpapers.isNotEmpty()) {
                     saveCachedWallpapers(wallpapers)
@@ -328,8 +330,8 @@ class MainActivity : AppCompatActivity() {
         const val WALLPAPER_INTERVAL_HOURS_KEY = "wallpaper_interval_hours"
         const val LAST_APPLIED_WALLPAPER_URL_KEY = "last_applied_wallpaper_url"
         const val LAST_WALLPAPER_TARGET_KEY = "last_wallpaper_target"
-        const val DEFAULT_IMAGE_COUNT = 50
-        const val DEFAULT_TAGS = "nature, abstract, landscape, city"
+        const val DEFAULT_IMAGE_COUNT = 25
+        const val DEFAULT_TAGS = "nature, scenery, landscape, city"
         const val DEFAULT_WALLPAPER_INTERVAL_HOURS = 6L
         const val DAILY_REFRESH_WORK_NAME = "daily_wallpaper_refresh"
         const val WALLPAPER_CHANGE_WORK_NAME = "periodic_wallpaper_change"
@@ -360,7 +362,10 @@ private fun buildWallhavenTagQueries(tags: String, excludedTags: String): List<S
         .joinToString(" ") { tag -> "-${tag.toWallhavenTag()}" }
     return tags.toCommaSeparatedTags()
         .ifEmpty { listOf("") }
-        .map { tag -> listOf(tag.toWallhavenTag(), exclusions).filter(String::isNotEmpty).joinToString(" ") }
+        .map { tag ->
+            val requiredTag = tag.takeIf(String::isNotEmpty)?.let { "+${it.toWallhavenTag()}" }.orEmpty()
+            listOf(requiredTag, exclusions).filter(String::isNotEmpty).joinToString(" ")
+        }
 }
 
 private fun String.toCommaSeparatedTags(): List<String> =
@@ -370,12 +375,21 @@ private fun String.toCommaSeparatedTags(): List<String> =
 
 private fun String.toWallhavenTag(): String = if (any(Char::isWhitespace)) "{$this}" else this
 
+private fun String.normalizedTag(): String = trim().lowercase(Locale.US)
+
 /** Uses Wallhaven's public, SFW-only v1 API. No account or credential is sent. */
 class WallhavenRepository(private val client: OkHttpClient) {
     /** Fetches and merges recent results for every tag, so tags are ORed together. */
-    fun fetch(queries: List<String>, maxItems: Int): List<WallpaperPost> {
+    fun fetch(
+        queries: List<String>,
+        includedTags: List<String>,
+        excludedTags: List<String>,
+        maxItems: Int
+    ): List<WallpaperPost> {
         val collected = linkedMapOf<String, WallpaperPost>()
         val pagesPerQuery = (maxItems + RESULTS_PER_PAGE - 1) / RESULTS_PER_PAGE
+        val normalizedIncludedTags = includedTags.map(String::normalizedTag).toSet()
+        val normalizedExcludedTags = excludedTags.map(String::normalizedTag).toSet()
 
         for (query in queries) {
             for (page in 1..pagesPerQuery) {
@@ -409,12 +423,14 @@ class WallhavenRepository(private val client: OkHttpClient) {
                 for (index in 0 until data.length()) {
                     val item = data.optJSONObject(index) ?: continue
                     val imageUrl = item.optString("path").takeIf(::isImageUrl) ?: continue
+                    val wallhavenId = item.optString("id").ifBlank { wallhavenIdFromUrl(imageUrl) }
+                    if (!matchesTagFilters(wallhavenId, normalizedIncludedTags, normalizedExcludedTags)) continue
                     val resolution = item.optString("resolution", "Unknown resolution")
                     val category = item.optString("category", "wallpaper")
                     collected.putIfAbsent(
                         imageUrl,
                         WallpaperPost(
-                            wallhavenId = item.optString("id").ifBlank { wallhavenIdFromUrl(imageUrl) },
+                            wallhavenId = wallhavenId,
                             title = "${category.replaceFirstChar { it.titlecase(Locale.US) }} wallpaper",
                             details = resolution,
                             imageUrl = imageUrl,
@@ -427,6 +443,18 @@ class WallhavenRepository(private val client: OkHttpClient) {
         return collected.values
             .sortedByDescending(WallpaperPost::addedAt)
             .take(maxItems)
+    }
+
+    private fun matchesTagFilters(
+        wallhavenId: String,
+        includedTags: Set<String>,
+        excludedTags: Set<String>
+    ): Boolean {
+        if (includedTags.isEmpty() && excludedTags.isEmpty()) return true
+        val wallpaperTags = fetchTags(wallhavenId).map(String::normalizedTag).toSet()
+        val hasIncludedTag = includedTags.isEmpty() || wallpaperTags.any(includedTags::contains)
+        val hasExcludedTag = wallpaperTags.any(excludedTags::contains)
+        return hasIncludedTag && !hasExcludedTag
     }
 
     fun fetchTags(wallhavenId: String): List<String> {
@@ -479,10 +507,17 @@ class WallpaperRefreshWorker(
         val tags = preferences.getString(MainActivity.TAGS_KEY, MainActivity.DEFAULT_TAGS)
             ?: MainActivity.DEFAULT_TAGS
         val excludedTags = preferences.getString(MainActivity.EXCLUDED_TAGS_KEY, "").orEmpty()
+        val includedTagList = tags.toCommaSeparatedTags()
+        val excludedTagList = excludedTags.toCommaSeparatedTags()
         val queries = buildWallhavenTagQueries(tags, excludedTags)
 
         try {
-            val wallpapers = WallhavenRepository(OkHttpClient()).fetch(queries, count)
+            val wallpapers = WallhavenRepository(OkHttpClient()).fetch(
+                queries,
+                includedTagList,
+                excludedTagList,
+                count
+            )
             if (wallpapers.isEmpty()) return@withContext Result.success()
 
             val values = JSONArray()
