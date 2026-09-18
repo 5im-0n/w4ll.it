@@ -1,3 +1,8 @@
 <resources>
     <string name="next_wallpaper_tile_label">Next wallpaper</string>
+    <string name="fullscreen_wallpaper_preview">Full-screen wallpaper preview</string>
+    <string name="close_fullscreen_preview">Close full-screen preview</string>
+    <string name="tags_heading">Tags</string>
+    <string name="tags_unavailable">No tags available.</string>
+    <string name="tags_load_error">Couldn’t load tags.</string>
 </resources>

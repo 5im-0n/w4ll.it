@@ -1,7 +1,10 @@
 package it.w4ll
 
+import android.app.Dialog
 import android.app.WallpaperManager
 import android.content.Context
+import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -10,6 +13,7 @@ import android.widget.Toast
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
@@ -23,8 +27,10 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import coil.load
 import it.w4ll.databinding.ActivityMainBinding
+import it.w4ll.databinding.DialogWallpaperPreviewBinding
 import it.w4ll.databinding.ItemWallpaperBinding
 import com.google.android.material.snackbar.Snackbar
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -40,7 +46,7 @@ import java.util.concurrent.TimeUnit
 class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private val client = OkHttpClient()
-    private val adapter = WallpaperAdapter(::setWallpaper)
+    private val adapter = WallpaperAdapter(::setWallpaper, ::showWallpaperPreview)
     private var currentPage = Page.HOME
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -157,6 +163,50 @@ class MainActivity : AppCompatActivity() {
         binding.wallpaperList.visibility = if (hasWallpapers) View.VISIBLE else View.GONE
     }
 
+    private fun showWallpaperPreview(post: WallpaperPost) {
+        val previewBinding = DialogWallpaperPreviewBinding.inflate(layoutInflater)
+        val dialog = Dialog(this, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
+        dialog.setContentView(previewBinding.root)
+        dialog.setCancelable(true)
+        dialog.window?.let { window ->
+            window.setBackgroundDrawable(ColorDrawable(Color.BLACK))
+            window.setLayout(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT)
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+        }
+
+        previewBinding.previewTitle.text = post.title
+        previewBinding.previewDetails.text = post.details
+        previewBinding.tagsText.text = ""
+        previewBinding.closeButton.setOnClickListener { dialog.dismiss() }
+        previewBinding.fullscreenImage.load(post.imageUrl) {
+            crossfade(true)
+            listener(
+                onSuccess = { _, _ -> previewBinding.imageProgress.visibility = View.GONE },
+                onError = { _, _ -> previewBinding.imageProgress.visibility = View.GONE }
+            )
+        }
+
+        val tagsJob = lifecycleScope.launch {
+            try {
+                val tags = withContext(Dispatchers.IO) {
+                    WallhavenRepository(client).fetchTags(post.wallhavenId)
+                }
+                previewBinding.tagsText.text = if (tags.isEmpty()) {
+                    getString(R.string.tags_unavailable)
+                } else {
+                    tags.joinToString("  ") { "#$it" }
+                }
+            } catch (error: Exception) {
+                if (error is CancellationException) throw error
+                previewBinding.tagsText.text = getString(R.string.tags_load_error)
+            } finally {
+                previewBinding.tagsProgress.visibility = View.GONE
+            }
+        }
+        dialog.setOnDismissListener { tagsJob.cancel() }
+        dialog.show()
+    }
+
     private fun saveFetchSettings(count: Int, tags: String, excludedTags: String, intervalHours: Long) {
         getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE).edit()
             .putInt(IMAGE_COUNT_KEY, count)
@@ -208,6 +258,7 @@ class MainActivity : AppCompatActivity() {
         val values = JSONArray()
         wallpapers.forEach { wallpaper ->
             values.put(JSONObject().apply {
+                put("id", wallpaper.wallhavenId)
                 put("title", wallpaper.title)
                 put("details", wallpaper.details)
                 put("imageUrl", wallpaper.imageUrl)
@@ -226,10 +277,12 @@ class MainActivity : AppCompatActivity() {
             val values = JSONArray(serialized)
             List(values.length()) { index ->
                 values.getJSONObject(index).let { item ->
+                    val imageUrl = item.getString("imageUrl")
                     WallpaperPost(
+                        wallhavenId = item.optString("id").ifBlank { wallhavenIdFromUrl(imageUrl) },
                         title = item.optString("title", "Wallpaper"),
                         details = item.optString("details", ""),
-                        imageUrl = item.getString("imageUrl"),
+                        imageUrl = imageUrl,
                         addedAt = item.optString("addedAt")
                     )
                 }
@@ -284,11 +337,17 @@ class MainActivity : AppCompatActivity() {
 }
 
 data class WallpaperPost(
+    val wallhavenId: String,
     val title: String,
     val details: String,
     val imageUrl: String,
     val addedAt: String = ""
 )
+
+private fun wallhavenIdFromUrl(imageUrl: String): String =
+    runCatching {
+        URI(imageUrl).path.substringAfterLast('/').substringBeforeLast('.').removePrefix("wallhaven-")
+    }.getOrDefault("")
 
 private class WallpaperFetchException(message: String) : Exception(message)
 
@@ -355,6 +414,7 @@ class WallhavenRepository(private val client: OkHttpClient) {
                     collected.putIfAbsent(
                         imageUrl,
                         WallpaperPost(
+                            wallhavenId = item.optString("id").ifBlank { wallhavenIdFromUrl(imageUrl) },
                             title = "${category.replaceFirstChar { it.titlecase(Locale.US) }} wallpaper",
                             details = resolution,
                             imageUrl = imageUrl,
@@ -367,6 +427,31 @@ class WallhavenRepository(private val client: OkHttpClient) {
         return collected.values
             .sortedByDescending(WallpaperPost::addedAt)
             .take(maxItems)
+    }
+
+    fun fetchTags(wallhavenId: String): List<String> {
+        if (wallhavenId.isBlank()) return emptyList()
+        val url = "https://wallhaven.cc/api/v1/w/$wallhavenId".toHttpUrl()
+        val request = Request.Builder()
+            .url(url)
+            .header("User-Agent", MainActivity.USER_AGENT)
+            .header("Accept", "application/json")
+            .build()
+        return client.newCall(request).execute().use { response ->
+            val body = response.body?.string().orEmpty()
+            if (!response.isSuccessful) {
+                throw WallpaperFetchException("Wallhaven could not load tags (${response.code}).")
+            }
+            val tags = JSONObject(body).getJSONObject("data").optJSONArray("tags")
+                ?: return@use emptyList()
+            buildList {
+                for (index in 0 until tags.length()) {
+                    tags.optJSONObject(index)?.optString("name")
+                        ?.takeIf(String::isNotBlank)
+                        ?.let(::add)
+                }
+            }
+        }
     }
 
     private fun isImageUrl(url: String): Boolean {
@@ -403,6 +488,7 @@ class WallpaperRefreshWorker(
             val values = JSONArray()
             wallpapers.forEach { wallpaper ->
                 values.put(JSONObject().apply {
+                    put("id", wallpaper.wallhavenId)
                     put("title", wallpaper.title)
                     put("details", wallpaper.details)
                     put("imageUrl", wallpaper.imageUrl)
@@ -433,7 +519,8 @@ class WallpaperChangeWorker(
 }
 
 private class WallpaperAdapter(
-    private val onApply: (WallpaperPost, Int) -> Unit
+    private val onApply: (WallpaperPost, Int) -> Unit,
+    private val onPreview: (WallpaperPost) -> Unit
 ) : RecyclerView.Adapter<WallpaperAdapter.ViewHolder>() {
     private var posts: List<WallpaperPost> = emptyList()
 
@@ -454,6 +541,8 @@ private class WallpaperAdapter(
             binding.thumbnail.load(post.imageUrl) { crossfade(true) }
             binding.titleText.text = post.title
             binding.communityText.text = post.details
+            binding.thumbnail.setOnClickListener { onPreview(post) }
+            binding.root.setOnClickListener { onPreview(post) }
             binding.homeButton.setOnClickListener { onApply(post, WallpaperManager.FLAG_SYSTEM) }
             binding.lockButton.setOnClickListener { onApply(post, WallpaperManager.FLAG_LOCK) }
             binding.bothButton.setOnClickListener {
