@@ -145,6 +145,33 @@
                         <TextView
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
+                            android:layout_marginTop="20dp"
+                            android:text="Excluded tags"
+                            android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="Enter comma-separated tags that matching wallpapers must not contain."
+                            android:textAppearance="@style/TextAppearance.Material3.BodySmall" />
+
+                        <com.google.android.material.textfield.TextInputLayout
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:hint="Tags to exclude">
+
+                            <com.google.android.material.textfield.TextInputEditText
+                                android:id="@+id/excludedTagsInput"
+                                android:layout_width="match_parent"
+                                android:layout_height="wrap_content"
+                                android:inputType="textCapWords" />
+                        </com.google.android.material.textfield.TextInputLayout>
+
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
                             android:layout_marginTop="24dp"
                             android:text="Automatically change wallpaper"
                             android:textAppearance="@style/TextAppearance.Material3.TitleMedium" />

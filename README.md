@@ -21,6 +21,7 @@
 - Lets you configure:
   - the number of wallpapers to fetch (1–100; default: 50);
   - comma-separated wallpaper tags (default: `nature, abstract, landscape, city`);
+  - comma-separated tags to exclude from all results;
   - a periodic home-screen wallpaper change interval (default: every 6 hours; `0` disables it).
 - Refreshes the cached Wallhaven results asynchronously once every 24 hours when a network connection is available.
 
@@ -93,10 +94,10 @@ call gradlew.bat installDebug
 1. Open the app. If there are no locally cached wallpapers, it automatically fetches a new set from Wallhaven.
 2. Browse the wallpaper grid and tap **Home**, **Lock**, or **Both** on an item to apply it.
 3. Tap the cog in the top-right corner to open **Settings**.
-4. Set the desired number of images, comma-separated tags, and automatic-change interval.
+4. Set the desired number of images, comma-separated included and excluded tags, and automatic-change interval.
 5. Tap **Save settings** to save the values and fetch a new matching set.
 
-Tags are alternatives: a wallpaper only needs to match **at least one** entered tag. For example, `nature, mountains` fetches wallpapers tagged `nature` or `mountains`. Multi-word tags can be entered normally, such as `abstract art, city`. Results from all tags are merged, deduplicated, and kept in most-recent-first order.
+Included tags are alternatives: a wallpaper only needs to match **at least one** entered tag. For example, `nature, mountains` fetches wallpapers tagged `nature` or `mountains`. Excluded tags apply to every search and remove matching wallpapers. Multi-word tags can be entered normally, such as `abstract art, city`. Results from all included tags are merged, deduplicated, and kept in most-recent-first order.
 
 ## F-Droid
 

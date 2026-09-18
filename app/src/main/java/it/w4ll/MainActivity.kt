@@ -114,8 +114,9 @@ class MainActivity : AppCompatActivity() {
             return
         }
         val tags = binding.searchQueryInput.text?.toString()?.trim().orEmpty()
-        val tagQueries = tags.toWallhavenTagQueries()
-        saveFetchSettings(count, tags, intervalHours)
+        val excludedTags = binding.excludedTagsInput.text?.toString()?.trim().orEmpty()
+        val tagQueries = buildWallhavenTagQueries(tags, excludedTags)
+        saveFetchSettings(count, tags, excludedTags, intervalHours)
         scheduleBackgroundWork(intervalHours)
 
         lifecycleScope.launch {
@@ -156,23 +157,11 @@ class MainActivity : AppCompatActivity() {
         binding.wallpaperList.visibility = if (hasWallpapers) View.VISIBLE else View.GONE
     }
 
-    /**
-     * Creates one Wallhaven query per comma-separated tag. Fetching every query and
-     * merging the results implements OR semantics while keeping Wallhaven's native
-     * tag matching intact. For example, "nature, abstract art" becomes
-     * ["nature", "{abstract art}"].
-     */
-    private fun String.toWallhavenTagQueries(): List<String> =
-        split(',')
-            .map(String::trim)
-            .filter(String::isNotEmpty)
-            .map { tag -> if (tag.any(Char::isWhitespace)) "{$tag}" else tag }
-            .ifEmpty { listOf("") }
-
-    private fun saveFetchSettings(count: Int, tags: String, intervalHours: Long) {
+    private fun saveFetchSettings(count: Int, tags: String, excludedTags: String, intervalHours: Long) {
         getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE).edit()
             .putInt(IMAGE_COUNT_KEY, count)
             .putString(TAGS_KEY, tags)
+            .putString(EXCLUDED_TAGS_KEY, excludedTags)
             .putLong(WALLPAPER_INTERVAL_HOURS_KEY, intervalHours)
             .apply()
     }
@@ -181,6 +170,7 @@ class MainActivity : AppCompatActivity() {
         val preferences = getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE)
         binding.imageCountInput.setText(preferences.getInt(IMAGE_COUNT_KEY, DEFAULT_IMAGE_COUNT).toString())
         binding.searchQueryInput.setText(preferences.getString(TAGS_KEY, DEFAULT_TAGS) ?: DEFAULT_TAGS)
+        binding.excludedTagsInput.setText(preferences.getString(EXCLUDED_TAGS_KEY, "").orEmpty())
         binding.wallpaperIntervalInput.setText(
             preferences.getLong(WALLPAPER_INTERVAL_HOURS_KEY, DEFAULT_WALLPAPER_INTERVAL_HOURS).toString()
         )
@@ -281,6 +271,7 @@ class MainActivity : AppCompatActivity() {
         const val CACHED_WALLPAPERS_KEY = "cached_wallpapers"
         const val IMAGE_COUNT_KEY = "image_count"
         const val TAGS_KEY = "wallpaper_tags"
+        const val EXCLUDED_TAGS_KEY = "excluded_wallpaper_tags"
         const val WALLPAPER_INTERVAL_HOURS_KEY = "wallpaper_interval_hours"
         const val LAST_APPLIED_WALLPAPER_URL_KEY = "last_applied_wallpaper_url"
         const val LAST_WALLPAPER_TARGET_KEY = "last_wallpaper_target"
@@ -300,6 +291,25 @@ data class WallpaperPost(
 )
 
 private class WallpaperFetchException(message: String) : Exception(message)
+
+/**
+ * Creates one Wallhaven query per included tag and adds every exclusion to each query.
+ * Included tags therefore retain OR semantics, while exclusions apply to all results.
+ */
+private fun buildWallhavenTagQueries(tags: String, excludedTags: String): List<String> {
+    val exclusions = excludedTags.toCommaSeparatedTags()
+        .joinToString(" ") { tag -> "-${tag.toWallhavenTag()}" }
+    return tags.toCommaSeparatedTags()
+        .ifEmpty { listOf("") }
+        .map { tag -> listOf(tag.toWallhavenTag(), exclusions).filter(String::isNotEmpty).joinToString(" ") }
+}
+
+private fun String.toCommaSeparatedTags(): List<String> =
+    split(',')
+        .map(String::trim)
+        .filter(String::isNotEmpty)
+
+private fun String.toWallhavenTag(): String = if (any(Char::isWhitespace)) "{$this}" else this
 
 /** Uses Wallhaven's public, SFW-only v1 API. No account or credential is sent. */
 class WallhavenRepository(private val client: OkHttpClient) {
@@ -383,7 +393,8 @@ class WallpaperRefreshWorker(
         val count = preferences.getInt(MainActivity.IMAGE_COUNT_KEY, MainActivity.DEFAULT_IMAGE_COUNT)
         val tags = preferences.getString(MainActivity.TAGS_KEY, MainActivity.DEFAULT_TAGS)
             ?: MainActivity.DEFAULT_TAGS
-        val queries = tags.toWorkerWallhavenTagQueries()
+        val excludedTags = preferences.getString(MainActivity.EXCLUDED_TAGS_KEY, "").orEmpty()
+        val queries = buildWallhavenTagQueries(tags, excludedTags)
 
         try {
             val wallpapers = WallhavenRepository(OkHttpClient()).fetch(queries, count)
@@ -420,13 +431,6 @@ class WallpaperChangeWorker(
         }
     }
 }
-
-private fun String.toWorkerWallhavenTagQueries(): List<String> =
-    split(',')
-        .map(String::trim)
-        .filter(String::isNotEmpty)
-        .map { tag -> if (tag.any(Char::isWhitespace)) "{$tag}" else tag }
-        .ifEmpty { listOf("") }
 
 private class WallpaperAdapter(
     private val onApply: (WallpaperPost, Int) -> Unit
