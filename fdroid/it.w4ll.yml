@@ -28,13 +28,13 @@ RepoType: git
 Repo: https://github.com/5im-0n/w4ll.it.git
 
 Builds:
-  - versionName: '1.0.3'
-    versionCode: 4
-    commit: RELEASE_COMMIT
+  - versionName: '1.2.0'
+    versionCode: 5
+    commit: v1.2.0
     gradle:
       - yes
 
 AutoUpdateMode: Version
 UpdateCheckMode: Tags
-CurrentVersion: '1.0.3'
-CurrentVersionCode: 4
+CurrentVersion: '1.2.0'
+CurrentVersionCode: 5
