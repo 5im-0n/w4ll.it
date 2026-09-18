@@ -89,6 +89,31 @@ set "PATH=%JAVA_HOME%\bin;%PATH%"
 call gradlew.bat installDebug
 ```
 
+## GitHub release signing
+
+Tag pushes run `.github/workflows/build-apk-on-tag.yml`, which builds a signed release APK and attaches it to a GitHub Release as `w4ll.apk`. Configure these GitHub Actions repository secrets before pushing a tag:
+
+- `ANDROID_KEYSTORE_BASE64`: the release keystore encoded as a single Base64 string;
+- `ANDROID_KEYSTORE_PASSWORD`: the keystore password;
+- `ANDROID_KEY_ALIAS`: the signing-key alias;
+- `ANDROID_KEY_PASSWORD`: the signing-key password.
+
+Keep the original keystore and its passwords in a secure backup. Every release must use this same key; losing or replacing it prevents Android from installing the new APK as an update. Also increase `versionCode` and update `versionName` in `app/build.gradle.kts` before each release.
+
+If you do not yet have a keystore, create one from Windows Command Prompt (replace the alias if desired, then securely record the passwords you enter):
+
+```bat
+"%JAVA_HOME%\bin\keytool.exe" -genkeypair -v -keystore w4ll-release-key.jks -alias w4ll-upload -keyalg RSA -keysize 2048 -validity 10000
+```
+
+Encode the keystore as one Base64 line:
+
+```bat
+powershell -NoProfile -Command "[Convert]::ToBase64String([IO.File]::ReadAllBytes('w4ll-release-key.jks'))" > keystore-base64.txt
+```
+
+Copy the Base64 value from `keystore-base64.txt` into `ANDROID_KEYSTORE_BASE64`. Add all four secrets under **Repository settings → Secrets and variables → Actions → New repository secret**. Never commit the keystore, `keystore.properties`, passwords, or the generated Base64 file.
+
 ## Using the app
 
 1. Open the app. If there are no locally cached wallpapers, it automatically fetches a new set from Wallhaven.

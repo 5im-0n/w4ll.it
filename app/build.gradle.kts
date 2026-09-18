@@ -9,22 +9,23 @@ plugins {
     id("org.jetbrains.kotlin.android")
 }
 
-// This file is local-only and must contain the credentials for the Play upload key.
+// Local release builds read the ignored keystore.properties file. CI supplies the
+// corresponding values as environment variables so credentials never enter the repository.
 val keystoreProperties = Properties()
 val keystorePropertiesFile = rootProject.file("keystore.properties")
 
-if (!keystorePropertiesFile.isFile) {
-    throw GradleException(
-        "Missing keystore.properties. Create it from keystore.properties.example before building a release bundle."
-    )
+if (keystorePropertiesFile.isFile) {
+    keystorePropertiesFile.inputStream().use { input ->
+        keystoreProperties.load(input)
+    }
 }
 
-keystorePropertiesFile.inputStream().use { input ->
-    keystoreProperties.load(input)
-}
-
-fun signingProperty(name: String): String = keystoreProperties.getProperty(name)
-    ?: throw GradleException("Missing '$name' in keystore.properties.")
+fun signingProperty(name: String, environmentName: String): String =
+    keystoreProperties.getProperty(name)
+        ?: System.getenv(environmentName)
+        ?: throw GradleException(
+            "Missing release signing value '$name'. Configure keystore.properties or $environmentName."
+        )
 
 // AGP 9 uses ApplicationExtension rather than the deprecated android {} accessor.
 extensions.configure<ApplicationExtension> {
@@ -41,10 +42,10 @@ extensions.configure<ApplicationExtension> {
 
     signingConfigs {
         create("release") {
-            storeFile = file(signingProperty("storeFile"))
-            storePassword = signingProperty("storePassword")
-            keyAlias = signingProperty("keyAlias")
-            keyPassword = signingProperty("keyPassword")
+            storeFile = file(signingProperty("storeFile", "ANDROID_KEYSTORE_FILE"))
+            storePassword = signingProperty("storePassword", "ANDROID_KEYSTORE_PASSWORD")
+            keyAlias = signingProperty("keyAlias", "ANDROID_KEY_ALIAS")
+            keyPassword = signingProperty("keyPassword", "ANDROID_KEY_PASSWORD")
         }
     }
 
