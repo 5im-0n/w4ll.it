@@ -39,7 +39,10 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import org.json.JSONArray
 import org.json.JSONObject
+import java.io.IOException
 import java.net.URI
+import java.util.ArrayDeque
+import java.util.Collections
 import java.util.Locale
 import java.util.concurrent.TimeUnit
 
@@ -190,8 +193,11 @@ class MainActivity : AppCompatActivity() {
 
         val tagsJob = lifecycleScope.launch {
             try {
-                val tags = withContext(Dispatchers.IO) {
-                    WallhavenRepository(client).fetchTags(post.wallhavenId)
+                // Tags gathered while filtering are kept with the wallpaper, avoiding another API call.
+                val tags = post.tags.ifEmpty {
+                    withContext(Dispatchers.IO) {
+                        WallhavenRepository(client).fetchTags(post.wallhavenId)
+                    }
                 }
                 previewBinding.tagsText.text = if (tags.isEmpty()) {
                     getString(R.string.tags_unavailable)
@@ -264,7 +270,9 @@ class MainActivity : AppCompatActivity() {
                 put("title", wallpaper.title)
                 put("details", wallpaper.details)
                 put("imageUrl", wallpaper.imageUrl)
+                put("thumbnailUrl", wallpaper.thumbnailUrl)
                 put("addedAt", wallpaper.addedAt)
+                put("tags", JSONArray(wallpaper.tags))
             })
         }
         getSharedPreferences(PREFERENCES_NAME, MODE_PRIVATE).edit()
@@ -285,7 +293,9 @@ class MainActivity : AppCompatActivity() {
                         title = item.optString("title", "Wallpaper"),
                         details = item.optString("details", ""),
                         imageUrl = imageUrl,
-                        addedAt = item.optString("addedAt")
+                        thumbnailUrl = item.optString("thumbnailUrl", imageUrl),
+                        addedAt = item.optString("addedAt"),
+                        tags = item.optJSONArray("tags")?.toStringList().orEmpty()
                     )
                 }
             }
@@ -343,7 +353,9 @@ data class WallpaperPost(
     val title: String,
     val details: String,
     val imageUrl: String,
-    val addedAt: String = ""
+    val thumbnailUrl: String = imageUrl,
+    val addedAt: String = "",
+    val tags: List<String> = emptyList()
 )
 
 private fun wallhavenIdFromUrl(imageUrl: String): String =
@@ -377,6 +389,10 @@ private fun String.toWallhavenTag(): String = if (any(Char::isWhitespace)) "{$th
 
 private fun String.normalizedTag(): String = trim().lowercase(Locale.US)
 
+private fun JSONArray.toStringList(): List<String> = buildList {
+    for (index in 0 until length()) optString(index).takeIf(String::isNotBlank)?.let(::add)
+}
+
 /** Uses Wallhaven's public, SFW-only v1 API. No account or credential is sent. */
 class WallhavenRepository(private val client: OkHttpClient) {
     /** Fetches and merges recent results for every tag, so tags are ORed together. */
@@ -387,11 +403,15 @@ class WallhavenRepository(private val client: OkHttpClient) {
         maxItems: Int
     ): List<WallpaperPost> {
         val collected = linkedMapOf<String, WallpaperPost>()
-        val pagesPerQuery = (maxItems + RESULTS_PER_PAGE - 1) / RESULTS_PER_PAGE
         val normalizedIncludedTags = includedTags.map(String::normalizedTag).toSet()
         val normalizedExcludedTags = excludedTags.map(String::normalizedTag).toSet()
+        // Give each OR-ed query only its share of the requested result count. Previously every
+        // query scanned enough pages for the full count, multiplying both search and tag calls.
+        val itemsPerQuery = (maxItems + queries.size - 1) / queries.size
+        val pagesPerQuery = (itemsPerQuery + RESULTS_PER_PAGE - 1) / RESULTS_PER_PAGE
 
         for (query in queries) {
+            var acceptedForQuery = 0
             for (page in 1..pagesPerQuery) {
                 val url = "https://wallhaven.cc/api/v1/search".toHttpUrl().newBuilder()
                     .addQueryParameter("q", query)
@@ -406,39 +426,35 @@ class WallhavenRepository(private val client: OkHttpClient) {
                     .header("User-Agent", MainActivity.USER_AGENT)
                     .header("Accept", "application/json")
                     .build()
-
-                val data = client.newCall(request).execute().use { response ->
-                    val body = response.body?.string().orEmpty()
-                    if (!response.isSuccessful) {
-                        throw WallpaperFetchException("Wallhaven could not load wallpapers (${response.code}). Please try again later.")
-                    }
-                    try {
-                        JSONObject(body).getJSONArray("data")
-                    } catch (_: Exception) {
-                        throw WallpaperFetchException("Wallhaven returned an invalid response. Please try again later.")
-                    }
-                }
+                val data = executeJson(request, "load wallpapers").optJSONArray("data")
+                    ?: throw WallpaperFetchException("Wallhaven returned an invalid response. Please try again later.")
                 if (data.length() == 0) break
 
                 for (index in 0 until data.length()) {
+                    if (acceptedForQuery >= itemsPerQuery || collected.size >= maxItems) break
                     val item = data.optJSONObject(index) ?: continue
                     val imageUrl = item.optString("path").takeIf(::isImageUrl) ?: continue
+                    if (collected.containsKey(imageUrl)) continue
                     val wallhavenId = item.optString("id").ifBlank { wallhavenIdFromUrl(imageUrl) }
-                    if (!matchesTagFilters(wallhavenId, normalizedIncludedTags, normalizedExcludedTags)) continue
+                    val wallpaperTags = fetchTags(wallhavenId)
+                    if (!matchesTagFilters(wallpaperTags, normalizedIncludedTags, normalizedExcludedTags)) continue
                     val resolution = item.optString("resolution", "Unknown resolution")
                     val category = item.optString("category", "wallpaper")
-                    collected.putIfAbsent(
-                        imageUrl,
-                        WallpaperPost(
-                            wallhavenId = wallhavenId,
-                            title = "${category.replaceFirstChar { it.titlecase(Locale.US) }} wallpaper",
-                            details = resolution,
-                            imageUrl = imageUrl,
-                            addedAt = item.optString("created_at")
-                        )
+                    collected[imageUrl] = WallpaperPost(
+                        wallhavenId = wallhavenId,
+                        title = "${category.replaceFirstChar { it.titlecase(Locale.US) }} wallpaper",
+                        details = resolution,
+                        imageUrl = imageUrl,
+                        thumbnailUrl = item.optJSONObject("thumbs")?.optString("large")
+                            ?.takeIf(String::isNotBlank) ?: imageUrl,
+                        addedAt = item.optString("created_at"),
+                        tags = wallpaperTags
                     )
+                    acceptedForQuery++
                 }
+                if (acceptedForQuery >= itemsPerQuery || collected.size >= maxItems) break
             }
+            if (collected.size >= maxItems) break
         }
         return collected.values
             .sortedByDescending(WallpaperPost::addedAt)
@@ -446,12 +462,12 @@ class WallhavenRepository(private val client: OkHttpClient) {
     }
 
     private fun matchesTagFilters(
-        wallhavenId: String,
+        tags: List<String>,
         includedTags: Set<String>,
         excludedTags: Set<String>
     ): Boolean {
         if (includedTags.isEmpty() && excludedTags.isEmpty()) return true
-        val wallpaperTags = fetchTags(wallhavenId).map(String::normalizedTag).toSet()
+        val wallpaperTags = tags.map(String::normalizedTag).toSet()
         val hasIncludedTag = includedTags.isEmpty() || wallpaperTags.any(includedTags::contains)
         val hasExcludedTag = wallpaperTags.any(excludedTags::contains)
         return hasIncludedTag && !hasExcludedTag
@@ -459,27 +475,62 @@ class WallhavenRepository(private val client: OkHttpClient) {
 
     fun fetchTags(wallhavenId: String): List<String> {
         if (wallhavenId.isBlank()) return emptyList()
+        tagCache[wallhavenId]?.let { return it }
         val url = "https://wallhaven.cc/api/v1/w/$wallhavenId".toHttpUrl()
         val request = Request.Builder()
             .url(url)
             .header("User-Agent", MainActivity.USER_AGENT)
             .header("Accept", "application/json")
             .build()
-        return client.newCall(request).execute().use { response ->
-            val body = response.body?.string().orEmpty()
-            if (!response.isSuccessful) {
-                throw WallpaperFetchException("Wallhaven could not load tags (${response.code}).")
+        val tags = executeJson(request, "load tags").optJSONObject("data")?.optJSONArray("tags")
+            ?: return emptyList()
+        return buildList {
+            for (index in 0 until tags.length()) {
+                tags.optJSONObject(index)?.optString("name")
+                    ?.takeIf(String::isNotBlank)
+                    ?.let(::add)
             }
-            val tags = JSONObject(body).getJSONObject("data").optJSONArray("tags")
-                ?: return@use emptyList()
-            buildList {
-                for (index in 0 until tags.length()) {
-                    tags.optJSONObject(index)?.optString("name")
-                        ?.takeIf(String::isNotBlank)
-                        ?.let(::add)
+        }.also { tagCache[wallhavenId] = it }
+    }
+
+    /** Retries transient failures and honors Wallhaven's 45-requests-per-minute limit. */
+    private fun executeJson(request: Request, operation: String): JSONObject {
+        var lastFailure: IOException? = null
+        repeat(MAX_ATTEMPTS) { attempt ->
+            WallhavenRateLimiter.awaitPermit()
+            try {
+                client.newCall(request).execute().use { response ->
+                    val body = response.body?.string().orEmpty()
+                    if (response.isSuccessful) {
+                        return try {
+                            JSONObject(body)
+                        } catch (_: Exception) {
+                            throw WallpaperFetchException("Wallhaven returned an invalid response. Please try again later.")
+                        }
+                    }
+                    if (response.code == 429 || response.code in 500..599) {
+                        if (attempt < MAX_ATTEMPTS - 1) {
+                            val retryAfterSeconds = response.header("Retry-After")?.toLongOrNull()
+                            val delayMs = retryAfterSeconds?.times(1_000L)
+                                ?: BASE_RETRY_DELAY_MS * (1L shl attempt)
+                            Thread.sleep(delayMs.coerceAtMost(MAX_RETRY_DELAY_MS))
+                            return@repeat
+                        }
+                        if (response.code == 429) {
+                            throw WallpaperFetchException("Wallhaven is receiving too many requests. Please try again shortly.")
+                        }
+                    }
+                    throw WallpaperFetchException("Wallhaven could not $operation (${response.code}). Please try again later.")
+                }
+            } catch (error: IOException) {
+                lastFailure = error
+                if (attempt < MAX_ATTEMPTS - 1) {
+                    Thread.sleep(BASE_RETRY_DELAY_MS * (1L shl attempt))
+                    return@repeat
                 }
             }
         }
+        throw WallpaperFetchException(lastFailure?.message ?: "Wallhaven request failed. Please try again later.")
     }
 
     private fun isImageUrl(url: String): Boolean {
@@ -490,6 +541,42 @@ class WallhavenRepository(private val client: OkHttpClient) {
 
     private companion object {
         const val RESULTS_PER_PAGE = 24
+        const val MAX_ATTEMPTS = 3
+        const val BASE_RETRY_DELAY_MS = 1_500L
+        const val MAX_RETRY_DELAY_MS = 60_000L
+        val tagCache: MutableMap<String, List<String>> = Collections.synchronizedMap(
+            object : LinkedHashMap<String, List<String>>(TAG_CACHE_SIZE, 0.75f, true) {
+                override fun removeEldestEntry(eldest: MutableMap.MutableEntry<String, List<String>>?): Boolean =
+                    size > TAG_CACHE_SIZE
+            }
+        )
+        const val TAG_CACHE_SIZE = 250
+    }
+}
+
+/**
+ * Process-wide rolling-window limiter. Keeping below the documented maximum leaves room for
+ * preview calls and for a foreground fetch overlapping a WorkManager refresh.
+ */
+private object WallhavenRateLimiter {
+    private const val MAX_REQUESTS_PER_MINUTE = 40
+    private const val WINDOW_MS = 60_000L
+    private val requestTimes = ArrayDeque<Long>()
+
+    @Synchronized
+    fun awaitPermit() {
+        while (true) {
+            val now = System.currentTimeMillis()
+            while (requestTimes.isNotEmpty() && now - requestTimes.first() >= WINDOW_MS) {
+                requestTimes.removeFirst()
+            }
+            if (requestTimes.size < MAX_REQUESTS_PER_MINUTE) {
+                requestTimes.addLast(now)
+                return
+            }
+            val waitMs = WINDOW_MS - (now - requestTimes.first()) + 100L
+            if (waitMs > 0L) Thread.sleep(waitMs)
+        }
     }
 }
 
@@ -527,7 +614,9 @@ class WallpaperRefreshWorker(
                     put("title", wallpaper.title)
                     put("details", wallpaper.details)
                     put("imageUrl", wallpaper.imageUrl)
+                    put("thumbnailUrl", wallpaper.thumbnailUrl)
                     put("addedAt", wallpaper.addedAt)
+                    put("tags", JSONArray(wallpaper.tags))
                 })
             }
             preferences.edit().putString(MainActivity.CACHED_WALLPAPERS_KEY, values.toString()).apply()
@@ -573,7 +662,8 @@ private class WallpaperAdapter(
 
     inner class ViewHolder(private val binding: ItemWallpaperBinding) : RecyclerView.ViewHolder(binding.root) {
         fun bind(post: WallpaperPost) {
-            binding.thumbnail.load(post.imageUrl) { crossfade(true) }
+            // Grid cards only need Wallhaven's thumbnail; fetch the multi-megabyte original on demand.
+            binding.thumbnail.load(post.thumbnailUrl) { crossfade(true) }
             binding.titleText.text = post.title
             binding.communityText.text = post.details
             binding.thumbnail.setOnClickListener { onPreview(post) }
